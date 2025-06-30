@@ -1,65 +1,50 @@
 // src/api.js
 
-const API_URL = 'http://localhost:5000/api';
+// Temporary mock API functions until backend is deployed
+// Replace with real API calls when backend is live
 
 function getToken() {
   return localStorage.getItem('authUserToken');
 }
 
-// Simulate fetching friends from backend
+// Mock friends data
 export async function fetchFriends() {
-  const res = await fetch(`${API_URL}/users/friends`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error('Failed to fetch friends');
-  return await res.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return [
+    { phone: "+1234567890", isAvailable: true },
+    { phone: "+1987654321", isAvailable: false },
+    { phone: "+1555123456", isAvailable: true },
+  ];
 }
 
-// Simulate updating user availability
 export async function updateAvailability(phone, available) {
-  const res = await fetch(`${API_URL}/users/availability`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify({ isAvailable: available }),
-  });
-  if (!res.ok) throw new Error('Failed to update availability');
-  return await res.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return { success: true };
 }
 
-// Simulate adding a friend by phone number
 export async function addFriend(phone) {
-  const res = await fetch(`${API_URL}/users/add-friend`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify({ friendPhone: phone }),
-  });
-  if (!res.ok) throw new Error('Failed to add friend');
-  return await res.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return { success: true };
 }
 
-// Auth endpoints
+// Mock auth functions
 export async function requestPin(phone) {
-  const res = await fetch(`${API_URL}/auth/request-pin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone }),
-  });
-  if (!res.ok) throw new Error('Failed to request PIN');
-  return await res.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  console.log(`Mock: PIN sent to ${phone}`);
+  return { success: true };
 }
 
 export async function verifyPin(phone, pin) {
-  const res = await fetch(`${API_URL}/auth/verify-pin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, pin }),
-  });
-  if (!res.ok) throw new Error('Invalid PIN');
-  return await res.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  // Mock successful verification
+  return { 
+    success: true, 
+    token: 'mock-jwt-token',
+    user: { phone, isAvailable: false, friends: [] }
+  };
 } 

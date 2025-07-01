@@ -123,6 +123,29 @@ if (mongoose.connection.readyState === 1) {
       });
     }
   });
+
+  // Mock friends endpoints
+  app.get('/api/users/friends', (req, res) => {
+    console.log('Mock: Fetching friends list');
+    // Return mock friends data
+    res.json([
+      { phone: '+1987654321', isAvailable: true },
+      { phone: '+1555123456', isAvailable: false },
+      { phone: '+1777888999', isAvailable: true }
+    ]);
+  });
+
+  app.post('/api/users/availability', (req, res) => {
+    const { isAvailable } = req.body;
+    console.log('Mock: Updating availability to', isAvailable);
+    res.json({ success: true });
+  });
+
+  app.post('/api/users/add-friend', (req, res) => {
+    const { friendPhone } = req.body;
+    console.log('Mock: Adding friend', friendPhone);
+    res.json({ success: true });
+  });
 }
 
 app.listen(PORT, () => {

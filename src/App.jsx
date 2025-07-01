@@ -139,6 +139,8 @@ function DashboardView({ onLogout }) {
   const [error, setError] = useState("");
   const [addPhone, setAddPhone] = useState("");
   const [addFriendError, setAddFriendError] = useState("");
+  const [addFriendSuccess, setAddFriendSuccess] = useState("");
+  const [availabilityStatus, setAvailabilityStatus] = useState("");
 
   React.useEffect(() => {
     async function loadFriends() {
@@ -160,17 +162,23 @@ function DashboardView({ onLogout }) {
   const handleToggle = async () => {
     const newAvailable = !available;
     setAvailable(newAvailable);
+    setAvailabilityStatus("Updating...");
     try {
       const { updateAvailability } = await import('./api');
       await updateAvailability(user.phone, newAvailable);
+      setAvailabilityStatus(newAvailable ? "You are now available!" : "You are now unavailable!");
+      setTimeout(() => setAvailabilityStatus(""), 3000);
     } catch (err) {
       setError("Failed to update availability.");
+      setAvailabilityStatus("Update failed!");
+      setTimeout(() => setAvailabilityStatus(""), 3000);
     }
   };
 
   const handleAddFriend = async (e) => {
     e.preventDefault();
     setAddFriendError("");
+    setAddFriendSuccess("");
     if (!addPhone) return;
     try {
       const { addFriend, fetchFriends } = await import('./api');
@@ -179,6 +187,8 @@ function DashboardView({ onLogout }) {
         const data = await fetchFriends();
         setFriends(data);
         setAddPhone("");
+        setAddFriendSuccess(`Friend ${addPhone} added successfully!`);
+        setTimeout(() => setAddFriendSuccess(""), 3000);
       } else {
         setAddFriendError("Failed to add friend.");
       }
@@ -204,6 +214,15 @@ function DashboardView({ onLogout }) {
           />
           {available ? "Available" : "Unavailable"}
         </label>
+        {availabilityStatus && (
+          <p style={{ 
+            color: availabilityStatus.includes('failed') ? 'red' : 'green', 
+            fontSize: '14px', 
+            marginTop: '5px' 
+          }}>
+            {availabilityStatus}
+          </p>
+        )}
       </div>
 
       <div>
@@ -215,8 +234,24 @@ function DashboardView({ onLogout }) {
         ) : (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {friends.map((friend) => (
-              <li key={friend.phone} style={{ padding: '10px', border: '1px solid #ddd', marginBottom: '5px', borderRadius: '4px' }}>
-                {friend.phone} - {friend.isAvailable ? "Available" : "Unavailable"}
+              <li key={friend.phone} style={{ 
+                padding: '15px', 
+                border: '1px solid #ddd', 
+                marginBottom: '8px', 
+                borderRadius: '6px',
+                backgroundColor: '#f9f9f9',
+                color: '#333',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontWeight: 'bold' }}>{friend.phone}</span>
+                <span style={{ 
+                  color: friend.isAvailable ? '#28a745' : '#dc3545',
+                  fontWeight: 'bold'
+                }}>
+                  {friend.isAvailable ? "🟢 Available" : "🔴 Unavailable"}
+                </span>
               </li>
             ))}
           </ul>
@@ -233,7 +268,8 @@ function DashboardView({ onLogout }) {
           />
           <button type="submit" style={{ width: '100%', padding: '10px' }}>Add Friend</button>
         </form>
-        {addFriendError && <p style={{ color: "red" }}>{addFriendError}</p>}
+        {addFriendError && <p style={{ color: "red", marginTop: '10px' }}>{addFriendError}</p>}
+        {addFriendSuccess && <p style={{ color: "green", marginTop: '10px' }}>{addFriendSuccess}</p>}
       </div>
     </div>
   );

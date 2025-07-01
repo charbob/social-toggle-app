@@ -43,6 +43,9 @@ function Login() {
           />
           <br />
           <button type="submit">Send PIN</button>
+          <p style={{ fontSize: "12px", color: "#666", marginTop: "8px" }}>
+            By clicking "Send PIN", you consent to receive text messages from Social Toggle App for authentication purposes.
+          </p>
         </form>
       ) : (
         <form onSubmit={handlePinSubmit}>

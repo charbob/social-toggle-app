@@ -55,6 +55,41 @@ function LoginView({ onLoginSuccess }) {
   return (
     <div>
       <h2>Welcome to Social Toggle</h2>
+      
+      {/* Debug Section */}
+      <div style={{ 
+        background: '#f0f8ff', 
+        border: '1px solid #ccc', 
+        padding: '15px', 
+        marginBottom: '20px', 
+        borderRadius: '5px' 
+      }}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>🧪 Debug Mode</h4>
+        <p style={{ margin: '5px 0', fontSize: '14px' }}>
+          <strong>Test Phone:</strong> +1234567890
+        </p>
+        <p style={{ margin: '5px 0', fontSize: '14px' }}>
+          <strong>Test PIN:</strong> 1234
+        </p>
+        <button 
+          onClick={() => {
+            setPhoneInput("+1234567890");
+            setPinInput("1234");
+          }}
+          style={{ 
+            background: '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            padding: '5px 10px', 
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '12px'
+          }}
+        >
+          Fill Test Data
+        </button>
+      </div>
+
       {!pinSent ? (
         <form onSubmit={handlePhoneSubmit}>
           <input
@@ -68,7 +103,7 @@ function LoginView({ onLoginSuccess }) {
           <br />
           <button type="submit" style={{ width: '100%', padding: '10px' }}>Send PIN</button>
           <p style={{ fontSize: "12px", color: "#666", marginTop: "8px" }}>
-            By clicking "Send PIN", you consent to receive text messages from Social Toggle App for authentication purposes.
+            By clicking "Send PIN", you consent to receive text messages from Social Toggle App for authentication and notification purposes.
           </p>
         </form>
       ) : (

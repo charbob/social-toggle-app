@@ -91,17 +91,37 @@ if (mongoose.connection.readyState === 1) {
 } else {
   // Mock endpoints for testing
   app.post('/api/auth/request-pin', (req, res) => {
-    console.log('Mock: PIN requested for', req.body.phone);
-    res.json({ success: true, message: 'Mock PIN sent' });
+    const { phone } = req.body;
+    console.log('Mock: PIN requested for', phone);
+    
+    // Special handling for dummy phone number
+    if (phone === '+1234567890') {
+      console.log('Dummy phone detected - skipping SMS');
+      res.json({ success: true, message: 'Mock PIN sent (dummy phone)' });
+    } else {
+      res.json({ success: true, message: 'Mock PIN sent' });
+    }
   });
   
   app.post('/api/auth/verify-pin', (req, res) => {
-    console.log('Mock: PIN verified for', req.body.phone);
-    res.json({ 
-      success: true, 
-      token: 'mock-token',
-      user: { phone: req.body.phone, isAvailable: false, friends: [] }
-    });
+    const { phone, pin } = req.body;
+    console.log('Mock: PIN verification for', phone, 'with PIN', pin);
+    
+    // Special handling for dummy credentials
+    if (phone === '+1234567890' && pin === '1234') {
+      console.log('Dummy credentials verified successfully');
+      res.json({ 
+        success: true, 
+        token: 'mock-token-dummy-user',
+        user: { phone, isAvailable: false, friends: [] }
+      });
+    } else {
+      res.json({ 
+        success: true, 
+        token: 'mock-token',
+        user: { phone, isAvailable: false, friends: [] }
+      });
+    }
   });
 }
 

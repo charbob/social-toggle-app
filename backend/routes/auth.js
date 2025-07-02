@@ -31,12 +31,12 @@ router.post('/verify-pin', async (req, res) => {
   if (!phone || !pin) return res.status(400).json({ error: 'Phone and PIN required' });
 
   // Dummy credentials for debug mode
-  if (phone === '+1234567890' && pin === '1234') {
+  if (phone === '+12345678900' && pin === '1234') {
     const token = jwt.sign({ phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
     return res.json({
       success: true,
       token,
-      user: { phone, isAvailable: false, friends: [] }
+      user: { phone, isAvailable: false, friends: [], name: '' }
     });
   }
 
@@ -48,7 +48,7 @@ router.post('/verify-pin', async (req, res) => {
   await user.save();
   // Issue JWT
   const token = jwt.sign({ phone: user.phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
-  res.json({ success: true, token, user: { phone: user.phone, isAvailable: user.isAvailable, friends: user.friends } });
+  res.json({ success: true, token, user: { phone: user.phone, isAvailable: user.isAvailable, friends: user.friends, name: user.name } });
 });
 
 module.exports = router; 

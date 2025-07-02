@@ -66,3 +66,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.app-panel {
+  width: 100%;
+  max-width: 400px;
+  margin: 40px auto;
+  background: #fff;
+  color: #222;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+  padding: 32px 20px 24px 20px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .app-panel {
+    max-width: 98vw;
+    padding: 18px 4vw 16px 4vw;
+    border-radius: 10px;
+  }
+}

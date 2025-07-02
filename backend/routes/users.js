@@ -21,7 +21,7 @@ function auth(req, res, next) {
 router.get('/me', auth, async (req, res) => {
   const user = await User.findOne({ phone: req.user.phone });
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ phone: user.phone, isAvailable: user.isAvailable, friends: user.friends });
+  res.json({ phone: user.phone, isAvailable: user.isAvailable, friends: user.friends, name: user.name });
 });
 
 // Update availability
@@ -53,6 +53,19 @@ router.get('/friends', auth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
   const friends = await User.find({ phone: { $in: user.friends } });
   res.json(friends.map(f => ({ phone: f.phone, isAvailable: f.isAvailable })));
+});
+
+// Update user name
+router.post('/name', auth, async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+  const user = await User.findOne({ phone: req.user.phone });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  user.name = name.trim();
+  await user.save();
+  res.json({ success: true, name: user.name });
 });
 
 module.exports = router; 

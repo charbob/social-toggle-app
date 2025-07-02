@@ -63,4 +63,17 @@ export async function verifyPin(phone, pin) {
   });
   if (!res.ok) throw new Error('Invalid PIN');
   return await res.json();
+}
+
+export async function updateUserName(name) {
+  const res = await fetch(`${API_URL}/users/name`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error('Failed to update name');
+  return await res.json();
 } 

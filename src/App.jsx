@@ -1,27 +1,45 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
+import { updateUserName } from "./api";
 
 const LAST_UPDATED = typeof __LAST_UPDATED__ !== 'undefined' ? __LAST_UPDATED__ : '';
 
 function App() {
   const { user, logout } = useAuth();
-  const [currentView, setCurrentView] = useState(user ? 'dashboard' : 'login');
+  const [currentView, setCurrentView] = useState(user ? (user.name ? 'dashboard' : 'name') : 'login');
+  const [pendingUser, setPendingUser] = useState(null);
+
+  const handleLoginSuccess = (userObj) => {
+    if (userObj && !userObj.name) {
+      setPendingUser(userObj);
+      setCurrentView('name');
+    } else {
+      setCurrentView('dashboard');
+    }
+  };
+
+  const handleNameSet = () => {
+    setCurrentView('dashboard');
+    setPendingUser(null);
+  };
 
   const renderContent = () => {
     switch (currentView) {
       case 'login':
-        return <LoginView onLoginSuccess={() => setCurrentView('dashboard')} />;
+        return <LoginView onLoginSuccess={handleLoginSuccess} />;
       case 'signup':
-        return <SignupView onSignupSuccess={() => setCurrentView('dashboard')} />;
+        return <SignupView onSignupSuccess={handleLoginSuccess} />;
+      case 'name':
+        return <NamePromptView user={pendingUser || user} onNameSet={handleNameSet} />;
       case 'dashboard':
         return <DashboardView onLogout={() => setCurrentView('login')} />;
       default:
-        return <LoginView onLoginSuccess={() => setCurrentView('dashboard')} />;
+        return <LoginView onLoginSuccess={handleLoginSuccess} />;
     }
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
+    <div className="app-panel">
       <div style={{ textAlign: 'center', fontSize: 13, color: '#888', marginBottom: 10 }}>
         Last updated: {LAST_UPDATED ? new Date(LAST_UPDATED).toLocaleString() : 'unknown'}
       </div>
@@ -79,7 +97,9 @@ function LoginView({ onLoginSuccess }) {
     setError("");
     const success = await verifyPin(pinInput);
     if (success) {
-      onLoginSuccess();
+      // Get the user from localStorage (set by AuthContext)
+      const userObj = JSON.parse(localStorage.getItem("authUser"));
+      onLoginSuccess(userObj);
     } else {
       setError("Invalid PIN. Try again.");
     }
@@ -308,6 +328,57 @@ function DashboardView({ onLogout }) {
         {addFriendError && <p style={{ color: "red", marginTop: '10px' }}>{addFriendError}</p>}
         {addFriendSuccess && <p style={{ color: "green", marginTop: '10px' }}>{addFriendSuccess}</p>}
       </div>
+    </div>
+  );
+}
+
+// Name Prompt Component
+function NamePromptView({ user, onNameSet }) {
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateUserName(name.trim());
+      // Update localStorage user
+      const userObj = JSON.parse(localStorage.getItem("authUser"));
+      userObj.name = name.trim();
+      localStorage.setItem("authUser", JSON.stringify(userObj));
+      onNameSet();
+    } catch {
+      setError("Failed to update name. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Welcome!</h2>
+      <p>Please enter your name to continue:</p>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Your name"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          required
+          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+          disabled={loading}
+        />
+        <button type="submit" style={{ width: '100%', padding: '10px' }} disabled={loading}>
+          {loading ? 'Saving...' : 'Continue'}
+        </button>
+      </form>
+      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
     </div>
   );
 }

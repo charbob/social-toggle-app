@@ -38,7 +38,7 @@ router.post('/verify-pin', async (req, res) => {
     return res.json({
       success: true,
       token,
-      user: { phone, isAvailable: false, friends: [], name: '' }
+      user: { phone, isAvailable: false, friends: [], name: 'Test User' }
     });
   }
 

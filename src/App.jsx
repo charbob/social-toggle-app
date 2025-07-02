@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
 
+const LAST_UPDATED = typeof __LAST_UPDATED__ !== 'undefined' ? __LAST_UPDATED__ : '';
+
 function App() {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState(user ? 'dashboard' : 'login');
@@ -20,6 +22,9 @@ function App() {
 
   return (
     <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', fontSize: 13, color: '#888', marginBottom: 10 }}>
+        Last updated: {LAST_UPDATED ? new Date(LAST_UPDATED).toLocaleString() : 'unknown'}
+      </div>
       {renderContent()}
     </div>
   );

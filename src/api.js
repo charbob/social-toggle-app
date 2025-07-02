@@ -76,4 +76,12 @@ export async function updateUserName(name) {
   });
   if (!res.ok) throw new Error('Failed to update name');
   return await res.json();
+}
+
+export async function fetchMe() {
+  const res = await fetch(`${API_URL}/users/me`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch user info');
+  return await res.json();
 } 

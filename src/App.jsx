@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
-import { updateUserName } from "./api";
+import { updateUserName, fetchMe } from "./api";
 
 const LAST_UPDATED = typeof __LAST_UPDATED__ !== 'undefined' ? __LAST_UPDATED__ : '';
 
@@ -226,14 +226,11 @@ function DashboardView({ onLogout }) {
       setError("");
       try {
         const { fetchFriends } = await import('./api');
-        // Fetch user info from backend
-        const res = await fetch('/api/users/me', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('authUserToken')}` },
-        });
-        if (res.ok) {
-          const userData = await res.json();
+        // Fetch user info from backend using API helper
+        try {
+          const userData = await fetchMe();
           setAvailable(!!userData.isAvailable);
-        } else {
+        } catch {
           setAvailable(false);
         }
         const data = await fetchFriends();

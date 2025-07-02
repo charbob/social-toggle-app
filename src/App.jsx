@@ -339,6 +339,8 @@ function DashboardView({ onLogout }) {
           <p>Loading friends...</p>
         ) : error ? (
           <p style={{ color: "red" }}>{error}</p>
+        ) : friends.length === 0 ? (
+          <p style={{ color: '#888', fontStyle: 'italic', margin: '20px 0' }}>No friends found :(</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {friends.map((friend) => (

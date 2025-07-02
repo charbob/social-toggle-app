@@ -211,7 +211,7 @@ function SignupView({ onSignupSuccess }) {
 // Dashboard Component
 function DashboardView({ onLogout }) {
   const { user } = useAuth();
-  const [available, setAvailable] = useState(user?.isAvailable || false);
+  const [available, setAvailable] = useState(false);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -221,11 +221,21 @@ function DashboardView({ onLogout }) {
   const [availabilityStatus, setAvailabilityStatus] = useState("");
 
   React.useEffect(() => {
-    async function loadFriends() {
+    async function loadUserAndFriends() {
       setLoading(true);
       setError("");
       try {
-        const { fetchFriends, updateAvailability, addFriend } = await import('./api');
+        const { fetchFriends } = await import('./api');
+        // Fetch user info from backend
+        const res = await fetch('/api/users/me', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authUserToken')}` },
+        });
+        if (res.ok) {
+          const userData = await res.json();
+          setAvailable(!!userData.isAvailable);
+        } else {
+          setAvailable(false);
+        }
         const data = await fetchFriends();
         setFriends(data);
       } catch (err) {
@@ -234,7 +244,7 @@ function DashboardView({ onLogout }) {
         setLoading(false);
       }
     }
-    loadFriends();
+    loadUserAndFriends();
   }, []);
 
   const handleToggle = async () => {

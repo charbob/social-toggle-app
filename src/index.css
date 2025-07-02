@@ -24,10 +24,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background: #f0f0f0;
 }
 
 h1 {
@@ -85,4 +84,11 @@ button:focus-visible {
     padding: 18px 4vw 16px 4vw;
     border-radius: 10px;
   }
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
 }

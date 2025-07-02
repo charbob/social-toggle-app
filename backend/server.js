@@ -66,56 +66,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Mock endpoints for testing (always available)
-function setupMockEndpoints(app) {
-  app.post('/api/auth/request-pin', (req, res) => {
-    const { phone } = req.body;
-    console.log('Mock: PIN requested for', phone);
-    if (phone === '+1234567890') {
-      console.log('Dummy phone detected - skipping SMS');
-      res.json({ success: true, message: 'Mock PIN sent (dummy phone)' });
-    } else {
-      res.json({ success: true, message: 'Mock PIN sent' });
-    }
-  });
-  app.post('/api/auth/verify-pin', (req, res) => {
-    const { phone, pin } = req.body;
-    console.log('Mock: PIN verification for', phone, 'with PIN', pin);
-    if (phone === '+1234567890' && pin === '1234') {
-      console.log('Dummy credentials verified successfully');
-      res.json({ 
-        success: true, 
-        token: 'mock-token-dummy-user',
-        user: { phone, isAvailable: false, friends: [] }
-      });
-    } else {
-      res.json({ 
-        success: true, 
-        token: 'mock-token',
-        user: { phone, isAvailable: false, friends: [] }
-      });
-    }
-  });
-  app.get('/api/users/friends', (req, res) => {
-    console.log('Mock: Fetching friends list');
-    res.json([
-      { phone: '+1987654321', isAvailable: true },
-      { phone: '+1555123456', isAvailable: false },
-      { phone: '+1777888999', isAvailable: true }
-    ]);
-  });
-  app.post('/api/users/availability', (req, res) => {
-    const { isAvailable } = req.body;
-    console.log('Mock: Updating availability to', isAvailable);
-    res.json({ success: true });
-  });
-  app.post('/api/users/add-friend', (req, res) => {
-    const { friendPhone } = req.body;
-    console.log('Mock: Adding friend', friendPhone);
-    res.json({ success: true });
-  });
-}
-
 // Connect to MongoDB and set up routes accordingly
 async function startServer() {
   let usingMock = false;
@@ -141,9 +91,6 @@ async function startServer() {
     console.log('USING REAL MONGODB - All data will be persisted.');
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/users', require('./routes/users'));
-  } else {
-    console.log('USING MOCK MODE - No data will be persisted.');
-    setupMockEndpoints(app);
   }
 
   app.listen(PORT, () => {
@@ -151,8 +98,6 @@ async function startServer() {
     console.log('CORS enabled for origins:', ['https://charbob.github.io', 'https://farewell.earth', 'http://localhost:5173', 'http://localhost:3000']);
     if (!usingMock) {
       console.log('Backend is LIVE and connected to MongoDB!');
-    } else {
-      console.log('Backend is running in MOCK MODE.');
     }
   });
 }

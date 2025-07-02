@@ -30,7 +30,6 @@ function App() {
   const [pendingUser, setPendingUser] = useState(null);
 
   const handleLoginSuccess = (userObj) => {
-    console.log('[DEBUG] User object after login:', userObj);
     if (userObj && !userObj.name) {
       setPendingUser(userObj);
       setCurrentView('name');
@@ -76,16 +75,6 @@ function LoginView({ onLoginSuccess }) {
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const { sendPin, verifyPin, pinSent } = useAuth();
-
-  // Format as (XXX) XXX-XXXX for display
-  const formatPhone = (digits) => {
-    if (!digits) return "";
-    let formatted = "";
-    if (digits.length > 0) formatted += "(" + digits.slice(0, 3);
-    if (digits.length >= 4) formatted += ") " + digits.slice(3, 6);
-    if (digits.length >= 7) formatted += "-" + digits.slice(6, 10);
-    return formatted;
-  };
 
   // Only allow digits, max 10 after +1, and prevent deleting +1
   const handlePhoneChange = (e) => {
@@ -171,7 +160,7 @@ function LoginView({ onLoginSuccess }) {
             <input
               type="tel"
               placeholder="(555) 123-4567"
-              value={formatPhone(rawPhone)}
+              value={rawPhone}
               onChange={handlePhoneChange}
               required
               style={{ width: '100%', padding: '10px' }}
@@ -260,16 +249,6 @@ function DashboardView({ onLogout }) {
     }
   };
 
-  // Format as (XXX) XXX-XXXX for display (reuse from login)
-  const formatPhone = (digits) => {
-    if (!digits) return "";
-    let formatted = "";
-    if (digits.length > 0) formatted += "(" + digits.slice(0, 3);
-    if (digits.length >= 4) formatted += ") " + digits.slice(3, 6);
-    if (digits.length >= 7) formatted += "-" + digits.slice(6, 10);
-    return formatted;
-  };
-
   // Only allow digits, max 10 after +1, and prevent deleting +1
   const handleAddPhoneChange = (e) => {
     let value = e.target.value.replace(/[^\d]/g, "");
@@ -295,7 +274,7 @@ function DashboardView({ onLogout }) {
         const data = await fetchFriends();
         setFriends(data);
         setAddPhone("");
-        setAddFriendSuccess(`Friend ${formatPhone(addPhone)} added successfully!`);
+        setAddFriendSuccess(`Friend ${addPhone} added successfully!`);
         setTimeout(() => setAddFriendSuccess(""), 3000);
       } else {
         setAddFriendError("Failed to add friend.");
@@ -373,7 +352,7 @@ function DashboardView({ onLogout }) {
             <input
               type="tel"
               placeholder="(555) 123-4567"
-              value={formatPhone(addPhone)}
+              value={addPhone}
               onChange={handleAddPhoneChange}
               required
               style={{ width: '100%', padding: '10px' }}

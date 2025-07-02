@@ -30,8 +30,6 @@ router.post('/request-pin', async (req, res) => {
 
 // Verify PIN
 router.post('/verify-pin', async (req, res) => {
-  console.log('[DEBUG] /verify-pin route hit', req.body);
-  console.error('[DEBUG] /verify-pin route hit (error log)', req.body);
   const { phone, pin } = req.body;
   if (!phone || !pin) return res.status(400).json({ error: 'Phone and PIN required' });
 
@@ -51,7 +49,6 @@ router.post('/verify-pin', async (req, res) => {
   // Re-fetch the user to ensure we have the latest data (including name)
   const freshUser = await User.findOne({ phone });
   const token = jwt.sign({ phone: freshUser.phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
-  console.error('[DEBUG] Returning user:', freshUser);
   res.json({ success: true, token, user: { phone: freshUser.phone, isAvailable: freshUser.isAvailable, friends: freshUser.friends, name: freshUser.name } });
 });
 

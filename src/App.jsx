@@ -27,15 +27,44 @@ function App() {
 
 // Login Component
 function LoginView({ onLoginSuccess }) {
-  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("+1");
+  const [rawPhone, setRawPhone] = useState(""); // Only digits
   const [pinInput, setPinInput] = useState("");
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const { sendPin, verifyPin, pinSent } = useAuth();
+
+  // Format as (XXX) XXX-XXXX for display
+  const formatPhone = (digits) => {
+    if (!digits) return "";
+    let formatted = "";
+    if (digits.length > 0) formatted += "(" + digits.slice(0, 3);
+    if (digits.length >= 4) formatted += ") " + digits.slice(3, 6);
+    if (digits.length >= 7) formatted += "-" + digits.slice(6, 10);
+    return formatted;
+  };
+
+  // Only allow digits, max 10 after +1
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/[^\d]/g, "");
+    if (value.length > 10) value = value.slice(0, 10);
+    setRawPhone(value);
+    setPhoneInput("+1" + (value ? " " + formatPhone(value) : ""));
+  };
+
+  const getE164Phone = () => "+1" + rawPhone;
+
+  const isValidPhone = (digits) => digits.length === 10;
 
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const success = await sendPin(phoneInput);
+    setPhoneError("");
+    if (!isValidPhone(rawPhone)) {
+      setPhoneError("Please enter a valid US phone number (10 digits).");
+      return;
+    }
+    const success = await sendPin(getE164Phone());
     if (!success) {
       setError("Failed to send PIN. Try again.");
     }
@@ -73,7 +102,8 @@ function LoginView({ onLoginSuccess }) {
         </p>
         <button 
           onClick={() => {
-            setPhoneInput("+1234567890");
+            setRawPhone("234567890");
+            setPhoneInput("+1 (234) 567-890");
             setPinInput("1234");
           }}
           style={{ 
@@ -94,17 +124,19 @@ function LoginView({ onLoginSuccess }) {
         <form onSubmit={handlePhoneSubmit}>
           <input
             type="tel"
-            placeholder="Phone number"
+            placeholder="+1 (555) 123-4567"
             value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
+            onChange={handlePhoneChange}
             required
             style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+            maxLength={17}
           />
           <br />
           <button type="submit" style={{ width: '100%', padding: '10px' }}>Send PIN</button>
           <p style={{ fontSize: "12px", color: "#666", marginTop: "8px" }}>
             By clicking "Send PIN", you consent to receive text messages from Social Toggle App for authentication and notification purposes.
           </p>
+          {phoneError && <p style={{ color: "red", fontSize: "13px" }}>{phoneError}</p>}
         </form>
       ) : (
         <form onSubmit={handlePinSubmit}>

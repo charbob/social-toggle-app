@@ -32,9 +32,10 @@ router.post('/verify-pin', async (req, res) => {
 
   // Dummy credentials for debug mode
   if (phone === '+1234567890' && pin === '1234') {
+    const token = jwt.sign({ phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
     return res.json({
       success: true,
-      token: 'mock-token-dummy-user',
+      token,
       user: { phone, isAvailable: false, friends: [] }
     });
   }

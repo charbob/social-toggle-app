@@ -50,6 +50,7 @@ router.post('/verify-pin', async (req, res) => {
   const freshUser = await User.findOne({ phone });
   // Issue JWT
   const token = jwt.sign({ phone: freshUser.phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
+  console.log('[DEBUG] Returning user:', freshUser);
   res.json({ success: true, token, user: { phone: freshUser.phone, isAvailable: freshUser.isAvailable, friends: freshUser.friends, name: freshUser.name } });
 });
 

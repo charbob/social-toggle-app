@@ -30,6 +30,7 @@ function App() {
   const [pendingUser, setPendingUser] = useState(null);
 
   const handleLoginSuccess = (userObj) => {
+    console.log('[DEBUG] User object after login:', userObj);
     if (userObj && !userObj.name) {
       setPendingUser(userObj);
       setCurrentView('name');

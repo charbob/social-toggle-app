@@ -4,6 +4,26 @@ import { updateUserName } from "./api";
 
 const LAST_UPDATED = typeof __LAST_UPDATED__ !== 'undefined' ? __LAST_UPDATED__ : '';
 
+// Helper to format relative time
+function formatRelativeTime(dateString) {
+  if (!dateString) return 'unknown';
+  const now = new Date();
+  const updated = new Date(dateString);
+  const diff = Math.floor((now - updated) / 1000); // seconds
+  if (isNaN(diff)) return 'unknown';
+  if (diff < 60) return `${diff} second${diff !== 1 ? 's' : ''} ago`;
+  if (diff < 3600) {
+    const min = Math.floor(diff / 60);
+    return `${min} minute${min !== 1 ? 's' : ''} ago`;
+  }
+  if (diff < 86400) {
+    const hr = Math.floor(diff / 3600);
+    return `${hr} hour${hr !== 1 ? 's' : ''} ago`;
+  }
+  const days = Math.floor(diff / 86400);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
+
 function App() {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState(user ? (user.name ? 'dashboard' : 'name') : 'login');
@@ -41,7 +61,7 @@ function App() {
   return (
     <div className="app-panel">
       <div style={{ textAlign: 'center', fontSize: 13, color: '#888', marginBottom: 10 }}>
-        Last updated: {LAST_UPDATED ? new Date(LAST_UPDATED).toLocaleString() : 'unknown'}
+        Last updated: {formatRelativeTime(LAST_UPDATED)}
       </div>
       {renderContent()}
     </div>

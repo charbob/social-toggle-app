@@ -283,7 +283,7 @@ function DashboardView({ onLogout }) {
       </div>
       
       <div style={{ marginBottom: '30px' }}>
-        <h3>Welcome, {user?.phone}</h3>
+        <h3>Welcome, {user?.name ? user.name : user?.phone}</h3>
         <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <input
             type="checkbox"

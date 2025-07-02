@@ -46,9 +46,11 @@ router.post('/verify-pin', async (req, res) => {
   }
   user.pin = undefined; // Clear PIN after use
   await user.save();
+  // Re-fetch the user to ensure we have the latest data (including name)
+  const freshUser = await User.findOne({ phone });
   // Issue JWT
-  const token = jwt.sign({ phone: user.phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
-  res.json({ success: true, token, user: { phone: user.phone, isAvailable: user.isAvailable, friends: user.friends, name: user.name } });
+  const token = jwt.sign({ phone: freshUser.phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
+  res.json({ success: true, token, user: { phone: freshUser.phone, isAvailable: freshUser.isAvailable, friends: freshUser.friends, name: freshUser.name } });
 });
 
 module.exports = router; 

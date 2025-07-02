@@ -32,25 +32,21 @@ router.post('/verify-pin', async (req, res) => {
   const { phone, pin } = req.body;
   if (!phone || !pin) return res.status(400).json({ error: 'Phone and PIN required' });
 
-  // Dummy credentials for debug mode
-  if (phone === '+12345678900' && pin === '1234') {
-    const token = jwt.sign({ phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
-    return res.json({
-      success: true,
-      token,
-      user: { phone, isAvailable: false, friends: [], name: 'Test User' }
-    });
+  let user = await User.findOne({ phone });
+  if (!user) {
+    // Create user if not exists
+    user = new User({ phone });
   }
-
-  const user = await User.findOne({ phone });
-  if (!user || user.pin !== pin) {
+  // Allow PIN '1234' for +12345678900, otherwise check normal PIN
+  if (phone === '+12345678900' && pin === '1234') {
+    // pass
+  } else if (user.pin !== pin) {
     return res.status(401).json({ error: 'Invalid PIN' });
   }
   user.pin = undefined; // Clear PIN after use
   await user.save();
   // Re-fetch the user to ensure we have the latest data (including name)
   const freshUser = await User.findOne({ phone });
-  // Issue JWT
   const token = jwt.sign({ phone: freshUser.phone }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
   console.error('[DEBUG] Returning user:', freshUser);
   res.json({ success: true, token, user: { phone: freshUser.phone, isAvailable: freshUser.isAvailable, friends: freshUser.friends, name: freshUser.name } });

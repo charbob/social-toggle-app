@@ -29,6 +29,16 @@ router.post('/request-pin', async (req, res) => {
 router.post('/verify-pin', async (req, res) => {
   const { phone, pin } = req.body;
   if (!phone || !pin) return res.status(400).json({ error: 'Phone and PIN required' });
+
+  // Dummy credentials for debug mode
+  if (phone === '+1234567890' && pin === '1234') {
+    return res.json({
+      success: true,
+      token: 'mock-token-dummy-user',
+      user: { phone, isAvailable: false, friends: [] }
+    });
+  }
+
   const user = await User.findOne({ phone });
   if (!user || user.pin !== pin) {
     return res.status(401).json({ error: 'Invalid PIN' });

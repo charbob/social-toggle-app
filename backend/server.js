@@ -51,6 +51,7 @@ app.use((req, res, next) => {
 async function connectDB() {
   try {
     const mongoUri = process.env.MONGO_URI || 'mongodb://localhost/socialtoggle';
+    console.log('MONGO_URI:', mongoUri);
     console.log('Attempting to connect to MongoDB...');
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
@@ -60,7 +61,7 @@ async function connectDB() {
   } catch (error) {
     console.error('MongoDB connection error:', error.message);
     // Don't exit the process, let the server start without DB
-    console.log('Server will start without database connection');
+    console.log('Server will start in MOCK MODE (no database connection)');
   }
 }
 
@@ -85,10 +86,16 @@ app.get('/health', (req, res) => {
 });
 
 // Only load routes if MongoDB is connected
-if (mongoose.connection.readyState === 1) {
+function useMockMode() {
+  return mongoose.connection.readyState !== 1;
+}
+
+if (!useMockMode()) {
+  console.log('USING REAL MONGODB - All data will be persisted.');
   app.use('/api/auth', require('./routes/auth'));
   app.use('/api/users', require('./routes/users'));
 } else {
+  console.log('USING MOCK MODE - No data will be persisted.');
   // Mock endpoints for testing
   app.post('/api/auth/request-pin', (req, res) => {
     const { phone } = req.body;

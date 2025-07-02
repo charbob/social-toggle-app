@@ -24,6 +24,93 @@ function formatRelativeTime(dateString) {
   return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
+// Phone number formatting utility
+const formatPhoneNumber = (digits) => {
+  if (!digits) return '';
+  const cleaned = digits.replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/);
+  if (match) {
+    const parts = [match[1], match[2], match[3]].filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return `(${parts[0]}`;
+    if (parts.length === 2) return `(${parts[0]}) ${parts[1]}`;
+    if (parts.length === 3) return `(${parts[0]}) ${parts[1]}-${parts[2]}`;
+  }
+  return digits;
+};
+
+// Phone number input with greyed formatting
+const PhoneInput = ({ value, onChange, placeholder = "(123) 456-7890" }) => {
+  const handleChange = (e) => {
+    const input = e.target;
+    const newValue = input.value.replace(/[^\d]/g, "");
+    if (newValue.length <= 10) {
+      onChange(newValue);
+    }
+  };
+
+  // Create the formatted display with greyed formatting
+  const formatDisplay = (digits) => {
+    const cleaned = digits.replace(/\D/g, '');
+    let display = '';
+    
+    if (cleaned.length === 0) {
+      display = placeholder;
+    } else {
+      const areaCode = cleaned.slice(0, 3);
+      const prefix = cleaned.slice(3, 6);
+      const lineNumber = cleaned.slice(6, 10);
+      
+      // Fill in missing parts with placeholder digits
+      const displayAreaCode = areaCode || '123';
+      const displayPrefix = prefix || '456';
+      const displayLineNumber = lineNumber || '7890';
+      
+      display = '(' + displayAreaCode + ') ' + displayPrefix + '-' + displayLineNumber;
+    }
+    
+    return display;
+  };
+
+  const displayValue = formatDisplay(value);
+  
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <input
+        type="tel"
+        value={displayValue}
+        onChange={handleChange}
+        style={{
+          width: '100%',
+          padding: '10px',
+          color: value.length > 0 ? '#000' : '#999',
+          backgroundColor: 'transparent',
+          position: 'relative',
+          zIndex: 2
+        }}
+        maxLength={14}
+      />
+      {value.length === 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '0',
+            right: '0',
+            padding: '10px',
+            color: '#ccc',
+            pointerEvents: 'none',
+            zIndex: 1,
+            userSelect: 'none'
+          }}
+        >
+          {placeholder}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function App() {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState(user ? (user.name ? 'dashboard' : 'name') : 'login');
@@ -157,14 +244,10 @@ function LoginView({ onLoginSuccess }) {
         <form onSubmit={handlePhoneSubmit}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontWeight: 'bold', fontSize: '16px', marginRight: '4px' }}>+1</span>
-            <input
-              type="tel"
-              placeholder="(555) 123-4567"
+            <PhoneInput
               value={rawPhone}
               onChange={handlePhoneChange}
-              required
-              style={{ width: '100%', padding: '10px' }}
-              maxLength={14}
+              placeholder="(555) 123-4567"
             />
           </div>
           <button type="submit" style={{ width: '100%', padding: '10px' }}>Send PIN</button>
@@ -349,14 +432,10 @@ function DashboardView({ onLogout }) {
         <form onSubmit={handleAddFriend} style={{ marginTop: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontWeight: 'bold', fontSize: '16px', marginRight: '4px' }}>+1</span>
-            <input
-              type="tel"
-              placeholder="(555) 123-4567"
+            <PhoneInput
               value={addPhone}
               onChange={handleAddPhoneChange}
-              required
-              style={{ width: '100%', padding: '10px' }}
-              maxLength={14}
+              placeholder="(555) 123-4567"
             />
           </div>
           <button type="submit" style={{ width: '100%', padding: '10px' }}>Add Friend</button>

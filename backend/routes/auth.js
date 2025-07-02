@@ -21,7 +21,10 @@ router.post('/request-pin', async (req, res) => {
     user.pin = pin;
   }
   await user.save();
-  await sendSMS(phone, `Your SocialToggleApp PIN is: ${pin}`);
+  // Bypass SMS sending for test user
+  if (phone !== '+12345678900') {
+    await sendSMS(phone, `Your SocialToggleApp PIN is: ${pin}`);
+  }
   res.json({ success: true });
 });
 

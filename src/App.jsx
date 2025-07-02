@@ -253,19 +253,42 @@ function DashboardView({ onLogout }) {
     }
   };
 
+  // Format as (XXX) XXX-XXXX for display (reuse from login)
+  const formatPhone = (digits) => {
+    if (!digits) return "";
+    let formatted = "";
+    if (digits.length > 0) formatted += "(" + digits.slice(0, 3);
+    if (digits.length >= 4) formatted += ") " + digits.slice(3, 6);
+    if (digits.length >= 7) formatted += "-" + digits.slice(6, 10);
+    return formatted;
+  };
+
+  // Only allow digits, max 10 after +1, and prevent deleting +1
+  const handleAddPhoneChange = (e) => {
+    let value = e.target.value.replace(/[^\d]/g, "");
+    if (value.length > 10) value = value.slice(0, 10);
+    setAddPhone(value);
+  };
+
+  const getAddE164Phone = () => "+1" + addPhone;
+  const isValidAddPhone = (digits) => digits.length === 10;
+
   const handleAddFriend = async (e) => {
     e.preventDefault();
     setAddFriendError("");
     setAddFriendSuccess("");
-    if (!addPhone) return;
+    if (!isValidAddPhone(addPhone)) {
+      setAddFriendError("Please enter a valid US phone number (10 digits).");
+      return;
+    }
     try {
       const { addFriend, fetchFriends } = await import('./api');
-      const res = await addFriend(addPhone);
+      const res = await addFriend(getAddE164Phone());
       if (res.success) {
         const data = await fetchFriends();
         setFriends(data);
         setAddPhone("");
-        setAddFriendSuccess(`Friend ${addPhone} added successfully!`);
+        setAddFriendSuccess(`Friend ${formatPhone(addPhone)} added successfully!`);
         setTimeout(() => setAddFriendSuccess(""), 3000);
       } else {
         setAddFriendError("Failed to add friend.");
@@ -336,14 +359,18 @@ function DashboardView({ onLogout }) {
         )}
         
         <form onSubmit={handleAddFriend} style={{ marginTop: '20px' }}>
-          <input
-            type="tel"
-            placeholder="Friend's phone number"
-            value={addPhone}
-            onChange={(e) => setAddPhone(e.target.value)}
-            required
-            style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '16px', marginRight: '4px' }}>+1</span>
+            <input
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={formatPhone(addPhone)}
+              onChange={handleAddPhoneChange}
+              required
+              style={{ width: '100%', padding: '10px' }}
+              maxLength={14}
+            />
+          </div>
           <button type="submit" style={{ width: '100%', padding: '10px' }}>Add Friend</button>
         </form>
         {addFriendError && <p style={{ color: "red", marginTop: '10px' }}>{addFriendError}</p>}

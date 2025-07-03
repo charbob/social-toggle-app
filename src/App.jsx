@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { updateUserName, fetchMe } from "./api";
 
@@ -41,35 +41,76 @@ const formatPhoneNumber = (digits) => {
 
 // Phone number input with greyed formatting
 const PhoneInput = ({ value, onChange, placeholder = "(123) 456-7890" }) => {
-  const handleChange = (e) => {
-    const input = e.target;
-    const newValue = input.value.replace(/[^\d]/g, "");
-    if (newValue.length <= 10) {
-      onChange(newValue);
+  const inputRef = useRef(null);
+  const [isFocused, setIsFocused] = useState(false);
+  
+  const handleFocus = () => {
+    setIsFocused(true);
+    // Position cursor after "(" if empty
+    if (value.length === 0) {
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.setSelectionRange(1, 1);
+        }
+      }, 0);
     }
   };
 
-  // Create the formatted display with greyed formatting
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
+  const handleChange = (e) => {
+    const input = e.target;
+    const cursorPos = input.selectionStart;
+    let newValue = input.value;
+    
+    // Remove all non-digit characters
+    const digitsOnly = newValue.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    if (digitsOnly.length <= 10) {
+      onChange(digitsOnly);
+    }
+  };
+
+  // Create the formatted display
   const formatDisplay = (digits) => {
     const cleaned = digits.replace(/\D/g, '');
-    let display = '';
     
     if (cleaned.length === 0) {
-      display = placeholder;
-    } else {
-      const areaCode = cleaned.slice(0, 3);
-      const prefix = cleaned.slice(3, 6);
-      const lineNumber = cleaned.slice(6, 10);
-      
-      // Fill in missing parts with placeholder digits
-      const displayAreaCode = areaCode || '123';
-      const displayPrefix = prefix || '456';
-      const displayLineNumber = lineNumber || '7890';
-      
-      display = '(' + displayAreaCode + ') ' + displayPrefix + '-' + displayLineNumber;
+      return placeholder;
     }
     
-    return display;
+    const areaCode = cleaned.slice(0, 3);
+    const prefix = cleaned.slice(3, 6);
+    const lineNumber = cleaned.slice(6, 10);
+    
+    let result = '(';
+    
+    if (areaCode) {
+      result += areaCode;
+    } else {
+      result += '123';
+    }
+    
+    result += ') ';
+    
+    if (prefix) {
+      result += prefix;
+    } else {
+      result += '456';
+    }
+    
+    result += '-';
+    
+    if (lineNumber) {
+      result += lineNumber;
+    } else {
+      result += '7890';
+    }
+    
+    return result;
   };
 
   const displayValue = formatDisplay(value);
@@ -77,36 +118,23 @@ const PhoneInput = ({ value, onChange, placeholder = "(123) 456-7890" }) => {
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <input
+        ref={inputRef}
         type="tel"
         value={displayValue}
         onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         style={{
           width: '100%',
           padding: '10px',
           color: value.length > 0 ? '#000' : '#999',
           backgroundColor: 'transparent',
           position: 'relative',
-          zIndex: 2
+          zIndex: 2,
+          caretColor: '#000'
         }}
         maxLength={14}
       />
-      {value.length === 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '0',
-            right: '0',
-            padding: '10px',
-            color: '#ccc',
-            pointerEvents: 'none',
-            zIndex: 1,
-            userSelect: 'none'
-          }}
-        >
-          {placeholder}
-        </div>
-      )}
     </div>
   );
 };

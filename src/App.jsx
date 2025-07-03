@@ -1,6 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { updateUserName, fetchMe } from "./api";
+import { IMaskInput } from 'react-imask';
 
 const LAST_UPDATED = typeof __LAST_UPDATED__ !== 'undefined' ? __LAST_UPDATED__ : '';
 
@@ -39,103 +40,36 @@ const formatPhoneNumber = (digits) => {
   return digits;
 };
 
-// Phone number input with greyed formatting
+// Phone number input using react-imask for robust masking
 const PhoneInput = ({ value, onChange, placeholder = "(123) 456-7890" }) => {
-  const inputRef = useRef(null);
-  const [isFocused, setIsFocused] = useState(false);
-  
-  const handleFocus = () => {
-    setIsFocused(true);
-    // Position cursor after "(" if empty
-    if (value.length === 0) {
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.setSelectionRange(1, 1);
-        }
-      }, 0);
-    }
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
-
-  const handleChange = (e) => {
-    const input = e.target;
-    const cursorPos = input.selectionStart;
-    let newValue = input.value;
-    
-    // Remove all non-digit characters
-    const digitsOnly = newValue.replace(/\D/g, '');
-    
-    // Limit to 10 digits
+  // Only allow digits in state
+  const handleAccept = (val, mask) => {
+    const digitsOnly = (val || '').replace(/\D/g, '');
     if (digitsOnly.length <= 10) {
       onChange(digitsOnly);
     }
   };
-
-  // Create the formatted display
-  const formatDisplay = (digits) => {
-    const cleaned = digits.replace(/\D/g, '');
-    
-    if (cleaned.length === 0) {
-      return placeholder;
-    }
-    
-    const areaCode = cleaned.slice(0, 3);
-    const prefix = cleaned.slice(3, 6);
-    const lineNumber = cleaned.slice(6, 10);
-    
-    let result = '(';
-    
-    if (areaCode) {
-      result += areaCode;
-    } else {
-      result += '123';
-    }
-    
-    result += ') ';
-    
-    if (prefix) {
-      result += prefix;
-    } else {
-      result += '456';
-    }
-    
-    result += '-';
-    
-    if (lineNumber) {
-      result += lineNumber;
-    } else {
-      result += '7890';
-    }
-    
-    return result;
-  };
-
-  const displayValue = formatDisplay(value);
-  
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
-      <input
-        ref={inputRef}
-        type="tel"
-        value={displayValue}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        style={{
-          width: '100%',
-          padding: '10px',
-          color: value.length > 0 ? '#000' : '#999',
-          backgroundColor: 'transparent',
-          position: 'relative',
-          zIndex: 2,
-          caretColor: '#000'
-        }}
-        maxLength={14}
-      />
-    </div>
+    <IMaskInput
+      mask="(000) 000-0000"
+      value={value}
+      unmask={false}
+      onAccept={handleAccept}
+      placeholder={placeholder}
+      type="tel"
+      className="phone-input"
+      style={{
+        width: '100%',
+        padding: '10px',
+        color: '#000',
+        background: 'transparent',
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        letterSpacing: '1px',
+      }}
+    />
   );
 };
 
@@ -190,15 +124,6 @@ function LoginView({ onLoginSuccess }) {
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const { sendPin, verifyPin, pinSent } = useAuth();
-
-  // Only allow digits, max 10 after +1, and prevent deleting +1
-  const handlePhoneChange = (e) => {
-    let value = e.target.value;
-    // Remove everything except digits and format
-    value = value.replace(/[^\d]/g, "");
-    if (value.length > 10) value = value.slice(0, 10);
-    setRawPhone(value);
-  };
 
   const getE164Phone = () => "+1" + rawPhone;
   const isValidPhone = (digits) => digits.length === 10;
@@ -274,7 +199,7 @@ function LoginView({ onLoginSuccess }) {
             <span style={{ fontWeight: 'bold', fontSize: '16px', marginRight: '4px' }}>+1</span>
             <PhoneInput
               value={rawPhone}
-              onChange={handlePhoneChange}
+              onChange={setRawPhone}
               placeholder="(555) 123-4567"
             />
           </div>
@@ -358,13 +283,6 @@ function DashboardView({ onLogout }) {
       setAvailabilityStatus("Update failed!");
       setTimeout(() => setAvailabilityStatus(""), 3000);
     }
-  };
-
-  // Only allow digits, max 10 after +1, and prevent deleting +1
-  const handleAddPhoneChange = (e) => {
-    let value = e.target.value.replace(/[^\d]/g, "");
-    if (value.length > 10) value = value.slice(0, 10);
-    setAddPhone(value);
   };
 
   const getAddE164Phone = () => "+1" + addPhone;
@@ -462,7 +380,7 @@ function DashboardView({ onLogout }) {
             <span style={{ fontWeight: 'bold', fontSize: '16px', marginRight: '4px' }}>+1</span>
             <PhoneInput
               value={addPhone}
-              onChange={handleAddPhoneChange}
+              onChange={setAddPhone}
               placeholder="(555) 123-4567"
             />
           </div>

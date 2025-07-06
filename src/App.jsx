@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { updateUserName, fetchMe } from "./api";
 import { IMaskInput } from 'react-imask';
@@ -141,13 +141,33 @@ function App() {
 
 // Login Component
 function LoginView({ onLoginSuccess }) {
-  const { sendPin, verifyPin, pinSent, phone: storedPhone, rememberMe, updateRememberMe } = useAuth();
+  const { sendPin, verifyPin, pinSent, phone: storedPhone, rememberMe, updateRememberMe, addLogoutCallback, removeLogoutCallback } = useAuth();
   const [rawPhone, setRawPhone] = useState(storedPhone ? storedPhone.replace('+1', '') : ""); // Pre-fill with stored phone
   const [pinInput, setPinInput] = useState("");
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [rateLimitInfo, setRateLimitInfo] = useState(null);
   const [isCheckingRateLimit, setIsCheckingRateLimit] = useState(false);
+  const [justLoggedOut, setJustLoggedOut] = useState(false);
+
+  // Clear rate limit cache on logout
+  const clearRateLimitCache = useCallback(() => {
+    setRateLimitInfo(null);
+    setIsCheckingRateLimit(false);
+    setError("");
+    setPhoneError("");
+    setPinInput("");
+    setJustLoggedOut(true);
+    
+    // Reset the just logged out flag after a short delay
+    setTimeout(() => setJustLoggedOut(false), 1000);
+  }, []);
+
+  // Register logout callback
+  useEffect(() => {
+    addLogoutCallback(clearRateLimitCache);
+    return () => removeLogoutCallback(clearRateLimitCache);
+  }, [addLogoutCallback, removeLogoutCallback, clearRateLimitCache]);
 
   // Update rawPhone when storedPhone changes (e.g., on first load)
   useEffect(() => {
@@ -158,12 +178,20 @@ function LoginView({ onLoginSuccess }) {
 
   // Check rate limit status when phone number changes
   useEffect(() => {
+    // Don't check rate limits immediately after logout
+    if (justLoggedOut) {
+      console.log("🚫 Skipping rate limit check - just logged out");
+      return;
+    }
+
     const checkRateLimit = async () => {
       if (rawPhone && rawPhone.length === 10) {
+        console.log("🔍 Checking rate limit for:", `+1${rawPhone}`);
         setIsCheckingRateLimit(true);
         try {
           const { getRateLimitStatus } = await import('./api');
           const status = await getRateLimitStatus(`+1${rawPhone}`);
+          console.log("📊 Rate limit status:", status);
           setRateLimitInfo(status);
         } catch (error) {
           console.log('Rate limit check failed:', error);
@@ -179,7 +207,7 @@ function LoginView({ onLoginSuccess }) {
     // Debounce the rate limit check
     const timeoutId = setTimeout(checkRateLimit, 500);
     return () => clearTimeout(timeoutId);
-  }, [rawPhone]);
+  }, [rawPhone, justLoggedOut]);
 
   const getE164Phone = () => "+1" + rawPhone;
   const isValidPhone = (digits) => digits.length === 10;
@@ -188,24 +216,28 @@ function LoginView({ onLoginSuccess }) {
     e.preventDefault();
     setError("");
     setPhoneError("");
+    console.log("🔍 handlePhoneSubmit called with rawPhone:", rawPhone);
+    
     if (!isValidPhone(rawPhone)) {
       setPhoneError("Please enter a valid US phone number (10 digits).");
       return;
     }
     
     try {
+      console.log("📞 Calling sendPin with:", getE164Phone());
       const result = await sendPin(getE164Phone());
-      if (result.success) {
-        // Update rate limit info with remaining attempts
-        if (result.remainingHourly !== undefined && result.remainingDaily !== undefined) {
-          setRateLimitInfo(prev => ({
-            ...prev,
-            remainingHourly: result.remainingHourly,
-            remainingDaily: result.remainingDaily
-          }));
-        }
+      console.log("✅ sendPin result:", result);
+      
+      // Update rate limit info with remaining attempts
+      if (result && result.remainingHourly !== undefined && result.remainingDaily !== undefined) {
+        setRateLimitInfo(prev => ({
+          ...prev,
+          remainingHourly: result.remainingHourly,
+          remainingDaily: result.remainingDaily
+        }));
       }
     } catch (err) {
+      console.error("❌ sendPin error:", err);
       setError(err.message);
     }
   };
@@ -227,15 +259,13 @@ function LoginView({ onLoginSuccess }) {
     setError("");
     try {
       const result = await sendPin(storedPhone);
-      if (result.success) {
-        // Update rate limit info
-        if (result.remainingHourly !== undefined && result.remainingDaily !== undefined) {
-          setRateLimitInfo(prev => ({
-            ...prev,
-            remainingHourly: result.remainingHourly,
-            remainingDaily: result.remainingDaily
-          }));
-        }
+      // Update rate limit info
+      if (result && result.remainingHourly !== undefined && result.remainingDaily !== undefined) {
+        setRateLimitInfo(prev => ({
+          ...prev,
+          remainingHourly: result.remainingHourly,
+          remainingDaily: result.remainingDaily
+        }));
       }
     } catch (err) {
       setError(err.message);
@@ -367,7 +397,10 @@ function LoginView({ onLoginSuccess }) {
       </div>
 
       {!pinSent ? (
-        <form onSubmit={handlePhoneSubmit}>
+        <form onSubmit={(e) => {
+          console.log("📝 Form submitted!");
+          handlePhoneSubmit(e);
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontWeight: 'bold', fontSize: '16px', marginRight: '4px' }}>+1</span>
             <PhoneInput
@@ -393,6 +426,7 @@ function LoginView({ onLoginSuccess }) {
             type="submit" 
             style={{ width: '100%', padding: '10px' }}
             disabled={rateLimitInfo && rateLimitInfo.isBlocked}
+            onClick={() => console.log("🔘 Send PIN button clicked!")}
           >
             {rateLimitInfo && rateLimitInfo.isBlocked ? 'Account Blocked' : 'Send PIN'}
           </button>

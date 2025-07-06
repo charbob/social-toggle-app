@@ -18,6 +18,7 @@ export function AuthProvider({ children }) {
   const [pinSent, setPinSent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+  const [logoutCallbacks, setLogoutCallbacks] = useState([]);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -31,7 +32,31 @@ export function AuthProvider({ children }) {
       localStorage.removeItem(PHONE_KEY);
       localStorage.removeItem(REMEMBER_ME_KEY);
     }
-  }, [rememberMe]);
+    
+    // Clear any session storage that might exist
+    sessionStorage.clear();
+    
+    // Execute all logout callbacks to clear temporary caches
+    logoutCallbacks.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in logout callback:', error);
+      }
+    });
+    
+    console.log("✅ Logout completed - all caches cleared");
+  }, [rememberMe, logoutCallbacks]);
+
+  // Add logout callback
+  const addLogoutCallback = useCallback((callback) => {
+    setLogoutCallbacks(prev => [...prev, callback]);
+  }, []);
+
+  // Remove logout callback
+  const removeLogoutCallback = useCallback((callback) => {
+    setLogoutCallbacks(prev => prev.filter(cb => cb !== callback));
+  }, []);
 
   // Restore user from localStorage and validate token on mount
   useEffect(() => {
@@ -69,12 +94,12 @@ export function AuthProvider({ children }) {
   const sendPin = async (phoneNumber) => {
     setPhone(phoneNumber);
     try {
-      await requestPin(phoneNumber);
+      const result = await requestPin(phoneNumber);
       setPinSent(true);
-      return true;
-    } catch {
+      return result; // Return the full API response
+    } catch (error) {
       setPinSent(false);
-      return false;
+      throw error; // Re-throw the error so LoginView can handle it
     }
   };
 
@@ -125,7 +150,9 @@ export function AuthProvider({ children }) {
       pinSent, 
       loading,
       rememberMe,
-      updateRememberMe
+      updateRememberMe,
+      addLogoutCallback,
+      removeLogoutCallback
     }}>
       {children}
     </AuthContext.Provider>

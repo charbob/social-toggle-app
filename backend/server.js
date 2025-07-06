@@ -17,6 +17,7 @@ const corsOptions = {
       'https://charbob.github.io',
       'https://farewell.earth',
       'http://localhost:5173',
+      'http://localhost:5174',
       'http://localhost:3000'
     ];
     
@@ -96,7 +97,7 @@ async function startServer() {
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log('CORS enabled for origins:', ['https://charbob.github.io', 'https://farewell.earth', 'http://localhost:5173', 'http://localhost:3000']);
+    console.log('CORS enabled for origins:', ['https://charbob.github.io', 'https://farewell.earth', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']);
     if (!usingMock) {
       console.log('Backend is LIVE and connected to MongoDB!');
     }

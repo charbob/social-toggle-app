@@ -92,3 +92,8 @@ button:focus-visible {
   justify-content: center;
   min-height: 100vh;
 }
+
+.phone-input::placeholder {
+  color: #bbb;
+  opacity: 1;
+}

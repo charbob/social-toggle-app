@@ -91,6 +91,7 @@ async function startServer() {
     console.log('USING REAL MONGODB - All data will be persisted.');
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/users', require('./routes/users'));
+    app.use('/api/admin', require('./routes/admin'));
   }
 
   app.listen(PORT, () => {

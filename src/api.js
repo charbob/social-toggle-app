@@ -51,8 +51,18 @@ export async function requestPin(phone) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone }),
   });
-  if (!res.ok) throw new Error('Failed to request PIN');
-  return await res.json();
+  
+  const data = await res.json();
+  
+  if (!res.ok) {
+    // Handle rate limiting specifically
+    if (res.status === 429) {
+      throw new Error(data.error || 'Rate limit exceeded');
+    }
+    throw new Error(data.error || 'Failed to request PIN');
+  }
+  
+  return data;
 }
 
 export async function verifyPin(phone, pin) {
@@ -83,5 +93,12 @@ export async function fetchMe() {
     headers: { Authorization: `Bearer ${getToken()}` },
   });
   if (!res.ok) throw new Error('Failed to fetch user info');
+  return await res.json();
+}
+
+// Rate limiting functions
+export async function getRateLimitStatus(phone) {
+  const res = await fetch(`${API_URL}/auth/rate-limit-status/${phone}`);
+  if (!res.ok) throw new Error('Failed to fetch rate limit status');
   return await res.json();
 } 

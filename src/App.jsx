@@ -74,9 +74,20 @@ const PhoneInput = ({ value, onChange, placeholder = "(123) 456-7890" }) => {
 };
 
 function App() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const [currentView, setCurrentView] = useState(user ? (user.name ? 'dashboard' : 'name') : 'login');
   const [pendingUser, setPendingUser] = useState(null);
+
+  // Update current view when user state changes
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        setCurrentView(user.name ? 'dashboard' : 'name');
+      } else {
+        setCurrentView('login');
+      }
+    }
+  }, [user, loading]);
 
   const handleLoginSuccess = (userObj) => {
     if (userObj && !userObj.name) {
@@ -91,6 +102,17 @@ function App() {
     setCurrentView('dashboard');
     setPendingUser(null);
   };
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="app-panel">
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (currentView) {
@@ -119,11 +141,45 @@ function App() {
 
 // Login Component
 function LoginView({ onLoginSuccess }) {
-  const [rawPhone, setRawPhone] = useState(""); // Only digits after +1
+  const { sendPin, verifyPin, pinSent, phone: storedPhone, rememberMe, updateRememberMe } = useAuth();
+  const [rawPhone, setRawPhone] = useState(storedPhone ? storedPhone.replace('+1', '') : ""); // Pre-fill with stored phone
   const [pinInput, setPinInput] = useState("");
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
-  const { sendPin, verifyPin, pinSent } = useAuth();
+  const [rateLimitInfo, setRateLimitInfo] = useState(null);
+  const [isCheckingRateLimit, setIsCheckingRateLimit] = useState(false);
+
+  // Update rawPhone when storedPhone changes (e.g., on first load)
+  useEffect(() => {
+    if (storedPhone && !rawPhone) {
+      setRawPhone(storedPhone.replace('+1', ''));
+    }
+  }, [storedPhone, rawPhone]);
+
+  // Check rate limit status when phone number changes
+  useEffect(() => {
+    const checkRateLimit = async () => {
+      if (rawPhone && rawPhone.length === 10) {
+        setIsCheckingRateLimit(true);
+        try {
+          const { getRateLimitStatus } = await import('./api');
+          const status = await getRateLimitStatus(`+1${rawPhone}`);
+          setRateLimitInfo(status);
+        } catch (error) {
+          console.log('Rate limit check failed:', error);
+          setRateLimitInfo(null);
+        } finally {
+          setIsCheckingRateLimit(false);
+        }
+      } else {
+        setRateLimitInfo(null);
+      }
+    };
+
+    // Debounce the rate limit check
+    const timeoutId = setTimeout(checkRateLimit, 500);
+    return () => clearTimeout(timeoutId);
+  }, [rawPhone]);
 
   const getE164Phone = () => "+1" + rawPhone;
   const isValidPhone = (digits) => digits.length === 10;
@@ -136,9 +192,21 @@ function LoginView({ onLoginSuccess }) {
       setPhoneError("Please enter a valid US phone number (10 digits).");
       return;
     }
-    const success = await sendPin(getE164Phone());
-    if (!success) {
-      setError("Failed to send PIN. Try again.");
+    
+    try {
+      const result = await sendPin(getE164Phone());
+      if (result.success) {
+        // Update rate limit info with remaining attempts
+        if (result.remainingHourly !== undefined && result.remainingDaily !== undefined) {
+          setRateLimitInfo(prev => ({
+            ...prev,
+            remainingHourly: result.remainingHourly,
+            remainingDaily: result.remainingDaily
+          }));
+        }
+      }
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -155,9 +223,114 @@ function LoginView({ onLoginSuccess }) {
     }
   };
 
+  const handleQuickLogin = async () => {
+    setError("");
+    try {
+      const result = await sendPin(storedPhone);
+      if (result.success) {
+        // Update rate limit info
+        if (result.remainingHourly !== undefined && result.remainingDaily !== undefined) {
+          setRateLimitInfo(prev => ({
+            ...prev,
+            remainingHourly: result.remainingHourly,
+            remainingDaily: result.remainingDaily
+          }));
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const formatTimeRemaining = (dateString) => {
+    if (!dateString) return '';
+    const now = new Date();
+    const blockTime = new Date(dateString);
+    const diffMs = blockTime - now;
+    const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+    return diffHours > 0 ? `${diffHours} hour${diffHours !== 1 ? 's' : ''}` : 'Less than 1 hour';
+  };
+
   return (
     <div>
       <h2>Welcome to Social Toggle</h2>
+      
+      {/* Rate Limit Warning */}
+      {rateLimitInfo && rateLimitInfo.isBlocked && (
+        <div style={{ 
+          background: '#fff3cd', 
+          border: '1px solid #ffeaa7', 
+          padding: '15px', 
+          marginBottom: '20px', 
+          borderRadius: '5px' 
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>⚠️ Account Temporarily Blocked</h4>
+          <p style={{ margin: '5px 0', fontSize: '14px', color: '#856404' }}>
+            Your account is blocked due to too many PIN requests.
+          </p>
+          <p style={{ margin: '5px 0', fontSize: '14px', color: '#856404' }}>
+            <strong>Block expires:</strong> {formatTimeRemaining(rateLimitInfo.blockExpiresAt)}
+          </p>
+        </div>
+      )}
+
+      {/* Rate Limit Info */}
+      {rateLimitInfo && !rateLimitInfo.isBlocked && (
+        <div style={{ 
+          background: '#d1ecf1', 
+          border: '1px solid #bee5eb', 
+          padding: '10px', 
+          marginBottom: '20px', 
+          borderRadius: '5px',
+          fontSize: '12px',
+          color: '#0c5460'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>📊 Rate Limit Status:</span>
+            {isCheckingRateLimit ? (
+              <span>Checking...</span>
+            ) : (
+              <span>
+                {rateLimitInfo.remainingHourly} hourly, {rateLimitInfo.remainingDaily} daily remaining
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Quick Login Section - Show when phone is remembered */}
+      {storedPhone && rememberMe && !pinSent && (
+        <div style={{ 
+          background: '#e8f5e8', 
+          border: '1px solid #4caf50', 
+          padding: '15px', 
+          marginBottom: '20px', 
+          borderRadius: '5px' 
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', color: '#2e7d32' }}>🚀 Quick Login</h4>
+          <p style={{ margin: '5px 0', fontSize: '14px', color: '#2e7d32' }}>
+            <strong>Phone:</strong> {storedPhone}
+          </p>
+          <button 
+            onClick={handleQuickLogin}
+            style={{ 
+              background: '#4caf50', 
+              color: 'white', 
+              border: 'none', 
+              padding: '8px 16px', 
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              marginTop: '8px'
+            }}
+          >
+            Send PIN to {storedPhone.replace('+1', '')}
+          </button>
+          <p style={{ fontSize: "12px", color: "#666", marginTop: "8px", marginBottom: "0" }}>
+            Or enter a different phone number below
+          </p>
+        </div>
+      )}
       
       {/* Debug Section */}
       <div style={{ 
@@ -203,7 +376,26 @@ function LoginView({ onLoginSuccess }) {
               placeholder="(555) 123-4567"
             />
           </div>
-          <button type="submit" style={{ width: '100%', padding: '10px' }}>Send PIN</button>
+          
+          {/* Remember Me checkbox */}
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => updateRememberMe(e.target.checked)}
+              />
+              Remember my phone number
+            </label>
+          </div>
+          
+          <button 
+            type="submit" 
+            style={{ width: '100%', padding: '10px' }}
+            disabled={rateLimitInfo && rateLimitInfo.isBlocked}
+          >
+            {rateLimitInfo && rateLimitInfo.isBlocked ? 'Account Blocked' : 'Send PIN'}
+          </button>
           <p style={{ fontSize: "12px", color: "#666", marginTop: "8px" }}>
             By clicking "Send PIN", you consent to receive text messages from Social Toggle App for authentication and notification purposes.
           </p>
@@ -235,7 +427,7 @@ function SignupView({ onSignupSuccess }) {
 
 // Dashboard Component
 function DashboardView({ onLogout }) {
-  const { user } = useAuth();
+  const { user, rememberMe, updateRememberMe } = useAuth();
   const [available, setAvailable] = useState(false);
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -317,7 +509,17 @@ function DashboardView({ onLogout }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Dashboard</h2>
-        <button onClick={onLogout} style={{ padding: '8px 16px' }}>Logout</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => updateRememberMe(e.target.checked)}
+            />
+            Remember me
+          </label>
+          <button onClick={onLogout} style={{ padding: '8px 16px' }}>Logout</button>
+        </div>
       </div>
       
       <div style={{ marginBottom: '30px' }}>
